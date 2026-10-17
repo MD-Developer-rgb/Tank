@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Prevent zoom/scroll on phones: user-scalable=no + touch-action rules in style.css -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<title>THE LAST FIVE NIGHTS</title>
+<!-- Web fonts are optional: the CSS falls back to Courier New if they fail to load -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Special+Elite&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ======================= 3D CANVAS (PlayCanvas renders here) ======================= -->
+<canvas id="game-canvas"></canvas>
+
+<!-- ======================= LOADING ======================= -->
+<div id="loading" class="screen show">
+  <div class="loading-title">THE LAST FIVE NIGHTS</div>
+  <div class="loading-bar"><div id="loading-fill"></div></div>
+  <div id="loading-text">Loading...</div>
+</div>
+
+<!-- ======================= TAP TO START (needed for audio autoplay policy) ======================= -->
+<button id="btn-fs" class="fs-btn" title="Fullscreen (F11 / key U)" aria-label="Toggle fullscreen"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="fs-in" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><path class="fs-out" d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg></button>
+<div id="tap-start" class="screen">
+  <div class="tap-text">TAP TO START</div>
+  <div class="tap-sub">headphones recommended</div>
+</div>
+
+<!-- ======================= FATAL ERROR ======================= -->
+<div id="fatal" class="screen">
+  <div class="fatal-box">
+    <h2>COULD NOT START</h2>
+    <p id="fatal-text"></p>
+    <p class="small">See lib/README.txt to place an offline copy of playcanvas.min.js in the lib folder.</p>
+  </div>
+</div>
+
+<!-- ======================= HOME SCREEN ======================= -->
+<div id="screen-home" class="screen menu-screen">
+  <div class="fog fog1"></div><div class="fog fog2"></div>
+  <div class="menu-inner">
+    <h1 class="title">THE LAST FIVE NIGHTS</h1>
+    <div class="subtitle">Remote Forest Compound</div>
+    <div class="menu-buttons">
+      <div class="btn-wrap">
+        <button id="btn-continue" class="menu-btn" data-nav>CONTINUE GAME</button>
+        <div id="continue-info" class="btn-info">No saved game</div>
+      </div>
+      <div class="btn-wrap"><button id="btn-new" class="menu-btn" data-nav>NEW GAME</button></div>
+      <div class="btn-wrap"><button id="btn-settings" class="menu-btn" data-nav>SETTINGS</button></div>
+      <div class="btn-wrap"><button id="btn-credits" class="menu-btn" data-nav>CREDITS</button></div>
+    </div>
+  </div>
+  <svg class="treeline" viewBox="0 0 1200 160" preserveAspectRatio="none" aria-hidden="true">
+    <path fill="#000" d="M0 160 L0 120 L20 120 L40 70 L55 100 L70 40 L90 95 L105 60 L125 120 L150 120 L170 50 L190 110 L205 30 L228 105 L245 80 L265 125 L290 125 L310 60 L330 100 L350 20 L375 110 L395 85 L415 125 L440 125 L460 55 L480 100 L500 35 L525 108 L545 70 L565 125 L590 125 L610 45 L630 100 L650 10 L678 110 L698 80 L720 125 L745 125 L765 60 L785 98 L805 30 L830 108 L850 75 L870 125 L895 125 L915 50 L935 100 L955 22 L980 110 L1000 85 L1020 125 L1045 125 L1065 55 L1085 100 L1105 38 L1130 108 L1150 80 L1170 125 L1200 120 L1200 160 Z"/>
+  </svg>
+  <div class="corner corner-l">MD Developer</div>
+  <div class="corner corner-r">v1.0</div>
+</div>
+
+<!-- ======================= DIFFICULTY ======================= -->
+<div id="screen-difficulty" class="screen menu-screen">
+  <div class="fog fog1"></div><div class="fog fog2"></div>
+  <div class="menu-inner">
+    <h2 class="panel-title">CHOOSE DIFFICULTY</h2>
+    <div class="menu-buttons wide">
+      <div class="btn-wrap"><button class="menu-btn" data-nav data-diff="easy">EASY</button><div class="btn-info">Unlimited retries. Slower, less sensitive enemy.</div></div>
+      <div class="btn-wrap"><button class="menu-btn" data-nav data-diff="normal">NORMAL</button><div class="btn-info">Unlimited retries. The intended experience.</div></div>
+      <div class="btn-wrap"><button class="menu-btn" data-nav data-diff="hard">HARD</button><div class="btn-info">3 attempts. Faster, smarter enemy. Less battery.</div></div>
+      <div class="btn-wrap"><button class="menu-btn ghost" data-nav id="btn-diff-back">BACK</button></div>
+    </div>
+  </div>
+  <div class="corner corner-l">MD Developer</div><div class="corner corner-r">v1.0</div>
+</div>
+
+<!-- ======================= SETTINGS ======================= -->
+<div id="screen-settings" class="screen menu-screen">
+  <div class="fog fog1"></div><div class="fog fog2"></div>
+  <div class="menu-inner settings-inner">
+    <h2 class="panel-title">SETTINGS</h2>
+    <div class="settings-grid">
+      <label>Music Volume <span id="v-music"></span></label><input type="range" id="s-music" min="0" max="100">
+      <label>SFX Volume <span id="v-sfx"></span></label><input type="range" id="s-sfx" min="0" max="100">
+      <label>Look Sensitivity <span id="v-sens"></span></label><input type="range" id="s-sens" min="0" max="100">
+      <label>Brightness <span id="v-bright"></span></label><input type="range" id="s-bright" min="50" max="150">
+      <label>Graphics Quality</label>
+      <div class="seg" id="s-quality"><button data-q="LOW">LOW</button><button data-q="MEDIUM">MEDIUM</button><button data-q="HIGH">HIGH</button></div>
+      <label>Invert Y-axis</label><button class="toggle" id="s-invert">OFF</button>
+      <label>Show FPS</label><button class="toggle" id="s-fps">OFF</button>
+      <label>Vibration</label><button class="toggle" id="s-vib">ON</button>
+      <label>Fullscreen (U)</label><button class="toggle" id="s-fs">OFF</button>
+    </div>
+    <div class="settings-actions">
+      <button class="menu-btn small danger" id="btn-reset-save" data-nav>RESET SAVE</button>
+      <button class="menu-btn small" id="btn-settings-back" data-nav>BACK</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= CREDITS ======================= -->
+<div id="screen-credits" class="screen menu-screen">
+  <div class="fog fog1"></div><div class="fog fog2"></div>
+  <div class="credits-roll">
+    <div class="c1">THE LAST FIVE NIGHTS</div>
+    <div class="c2">Created by MD Developer</div>
+    <div class="c3">Built with PlayCanvas Engine</div>
+    <div class="c4">Thank you for playing</div>
+  </div>
+  <button id="btn-credits-back" class="menu-btn small credits-back" data-nav>BACK</button>
+</div>
+
+<!-- ======================= PAUSE ======================= -->
+<div id="screen-pause" class="screen menu-screen overlay-dark">
+  <div class="menu-inner">
+    <h2 class="panel-title">PAUSED</h2>
+    <div class="menu-buttons">
+      <div class="btn-wrap"><button id="btn-resume" class="menu-btn" data-nav>RESUME</button></div>
+      <div class="btn-wrap"><button id="btn-pause-settings" class="menu-btn" data-nav>SETTINGS</button></div>
+      <div class="btn-wrap"><button id="btn-quit" class="menu-btn" data-nav>SAVE &amp; QUIT TO HOME</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= ENDING / GAME OVER ======================= -->
+<div id="screen-ending" class="screen menu-screen overlay-dark">
+  <div class="menu-inner ending-inner">
+    <h2 id="ending-title" class="panel-title">ENDING</h2>
+    <p id="ending-text" class="ending-text"></p>
+    <div id="ending-stats" class="ending-stats"></div>
+    <div class="menu-buttons"><div class="btn-wrap"><button id="btn-ending-home" class="menu-btn" data-nav>HOME</button></div></div>
+  </div>
+</div>
+<div id="screen-gameover" class="screen menu-screen overlay-dark">
+  <div class="menu-inner ending-inner">
+    <h2 class="panel-title red">GAME OVER</h2>
+    <p class="ending-text">No attempts remain. The forest keeps you.</p>
+    <div class="menu-buttons"><div class="btn-wrap"><button id="btn-gameover-home" class="menu-btn" data-nav>HOME</button></div></div>
+  </div>
+</div>
+
+<!-- ======================= CONFIRM POPUP ======================= -->
+<div id="confirm" class="screen overlay-dark">
+  <div class="confirm-box">
+    <p id="confirm-text"></p>
+    <div class="confirm-btns"><button id="confirm-yes" class="menu-btn small" data-nav>YES</button><button id="confirm-no" class="menu-btn small" data-nav>NO</button></div>
+  </div>
+</div>
+
+<!-- ======================= HUD ======================= -->
+<div id="hud">
+  <div id="hud-objective"><div id="obj-title"></div><ul id="obj-lines"></ul></div>
+  <div id="hud-topright">
+    <div id="hud-detector" title="Motion detector"><span></span></div>
+    <div id="hud-weather" title="Weather">&#9728;</div>
+  </div>
+  <div id="hud-bars">
+    <div class="bar-row"><span class="bar-label">LIGHT</span><div class="bar"><div id="bar-battery"></div></div><span id="batt-spare"></span></div>
+    <div class="bar-row"><span class="bar-label">STAMINA</span><div class="bar thin"><div id="bar-stamina"></div></div></div>
+  </div>
+  <div id="hud-crosshair"></div>
+  <div id="hud-prompt"></div>
+  <div id="hud-hold"><div id="hold-ring"></div></div>
+  <div id="hud-rescue"></div>
+  <div id="hud-charge"></div>
+  <div id="hud-hint"></div>
+  <div id="hud-toasts"></div>
+  <div id="hud-fps"></div>
+</div>
+
+<!-- full screen effect layers -->
+<div id="fx-vignette"></div>
+<div id="fx-noise"></div>
+<div id="fx-brightness"></div>
+<div id="fx-fade"></div>
+<div id="fx-center"></div>
+<div id="fx-bars"><i></i><i></i></div>
+<div id="fx-sub"></div>
+<div id="fx-flash"></div>
+
+<!-- ======================= MODALS ======================= -->
+<div id="modal-note" class="modal"><div class="paper">
+  <h3 id="note-title"></h3><div id="note-body"></div>
+  <button id="note-close" class="menu-btn small">CLOSE</button></div></div>
+
+<div id="modal-keypad" class="modal"><div class="keypad-box">
+  <h3 id="keypad-title">KEYPAD</h3>
+  <div id="keypad-display"></div>
+  <div class="keypad-grid" id="keypad-grid"></div>
+  <button id="keypad-cancel" class="menu-btn small">CANCEL</button></div></div>
+
+<div id="modal-radio" class="modal"><div class="radio-box">
+  <h3>EMERGENCY RADIO</h3>
+  <div id="radio-freq">90.0</div>
+  <div class="static-meter"><div id="static-fill"></div></div>
+  <div id="radio-status">TUNE THE DIAL</div>
+  <input type="range" id="radio-dial" min="800" max="1100" value="900">
+  <div class="dial-scale"><span>80</span><span>85</span><span>90</span><span>95</span><span>100</span><span>105</span><span>110</span></div>
+  <button id="radio-cancel" class="menu-btn small">STEP AWAY</button></div></div>
+
+<div id="modal-decision" class="modal"><div class="paper dark">
+  <h3>INCOMING TRANSMISSION</h3>
+  <p class="radio-msg">"...Rescue team cannot reach the compound. Service road is blocked. Choose: clear the road or prepare the emergency beacon."</p>
+  <div class="decision-btns">
+    <button id="route-a" class="menu-btn">ROUTE A<br><small>Clear the Road</small></button>
+    <button id="route-b" class="menu-btn">ROUTE B<br><small>Emergency Beacon</small></button>
+  </div></div></div>
+
+<div id="modal-map" class="modal"><div class="map-box">
+  <h3>COMPOUND MAP</h3><canvas id="map-canvas" width="560" height="520"></canvas>
+  <button id="map-close" class="menu-btn small">CLOSE</button></div></div>
+
+<div id="modal-inv" class="modal"><div class="inv-box">
+  <div class="tabs"><button id="tab-inv" class="active">INVENTORY</button><button id="tab-notes">NOTEBOOK</button></div>
+  <div id="inv-pane"><div id="inv-grid"></div><div id="inv-tools"></div>
+    <button id="btn-use-battery" class="menu-btn small">USE SPARE BATTERY (B)</button></div>
+  <div id="notes-pane"><div id="notes-list"></div></div>
+  <button id="inv-close" class="menu-btn small">CLOSE</button></div></div>
+
+<!-- ======================= TOUCH CONTROLS ======================= -->
+<div id="touch-ui">
+  <div id="joy-base"><div id="joy-knob"></div></div>
+  <div id="touch-buttons">
+    <button id="btn-interact" class="tbtn big">E</button>
+    <button id="btn-run" class="tbtn">RUN</button>
+    <button id="btn-flash" class="tbtn">LIGHT</button>
+    <button id="btn-hide" class="tbtn">HIDE</button>
+  </div>
+  <div id="touch-top">
+    <button id="btn-t-pause" class="tbtn tiny">II</button>
+    <button id="btn-t-map" class="tbtn tiny">MAP</button>
+    <button id="btn-t-inv" class="tbtn tiny">BAG</button>
+  </div>
+</div>
+<div id="rotate-overlay">Please rotate your device to landscape</div>
+
+<!-- ======================= SCRIPTS (order matters) ======================= -->
+<script src="https://cdn.jsdelivr.net/npm/playcanvas/build/playcanvas.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/save.js"></script>
+<script src="js/synth.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/gfx.js"></script>
+<script src="js/world.js"></script>
+<script src="js/props.js"></script>
+<script src="js/nature.js"></script>
+<script src="js/scenery.js"></script>
+<script src="js/player.js"></script>
+<script src="js/hollow.js"></script>
+<script src="js/game.js"></script>
+<script src="js/scares.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/menu.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
